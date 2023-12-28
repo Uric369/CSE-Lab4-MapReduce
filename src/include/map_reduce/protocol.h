@@ -23,8 +23,8 @@ namespace mapReduce {
 
     std::string Reduce(const std::string &key, const std::vector<std::string> &values);
 
-    const std::string ASK_TASK = "ask_task";
-    const std::string SUBMIT_TASK = "submit_task";
+    const std::string ASK_TASK = "ask task";
+    const std::string SUBMIT_TASK = "submit task";
 
     struct MR_CoordinatorConfig {
         uint16_t port;

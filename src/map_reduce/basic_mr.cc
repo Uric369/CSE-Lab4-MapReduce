@@ -41,29 +41,36 @@ std::map<std::string, int> CountMap(const std::string &content) {
   return count_map;
 }
 
-std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map) {
-  std::stringstream ss;
-  for (const auto &[key, value] : count_map) {
-    ss << key << " " << value << "\n";
-  }
-  std::string content = ss.str();
-  return std::vector<uint8_t>{content.begin(), content.end()};
-}
-
-void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::string, int> &count_map) {
-  std::string str_content(content.begin(), content.end());
-  std::stringstream ss(str_content);
-  std::string word;
-  int count;
-  while (!ss.eof()) {
-    ss >> word >> count;
-    if (word.front() == '\0') {
-      continue;
+// Serialize the count map to a vector of uint8_t.
+    std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map) {
+        std::stringstream ss;
+        for (const auto &[key, value] : count_map) {
+            ss << key << " " << value << "\n";  // Use '\0' as a separator between key and value
+        }
+        std::string content = ss.str();
+        return std::vector<uint8_t>(content.begin(), content.end());
     }
-    count_map[word] += count;
 
-  }
-}
+
+    void DeserializeCountMap(const std::vector<uint8_t> &serializedData, std::map<std::string, int> &resultMap) {
+        std::stringstream stream(std::string(serializedData.begin(), serializedData.end()));
+        std::string key;
+        int value;
+        std::istream_iterator<std::string> iterator(stream), endIterator;
+        while (iterator != endIterator) {
+            key = *iterator++;
+            if (iterator == endIterator) break;
+            std::stringstream valueStream(*iterator++);
+            if (!(valueStream >> value)) {
+                continue;
+            }
+            if (!key.empty() && key.front() == '\0') {
+                continue;
+            }
+            resultMap[key] += value;
+        }
+    }
+
 
     // The map function processes the content and returns a vector of key-value pairs.
     std::vector<KeyVal> Map(const std::string &content) {
