@@ -15,89 +15,91 @@ namespace mapReduce {
 // and look only at the contents argument. The return value is a slice
 // of key/value pairs.
 //
-    bool CharMatch(const char ch) {
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-            return true;
-        }
-        return false;
+std::map<std::string, int> CountMap(const std::string &content) {
+  auto punctuation_free_content = std::string();
+  punctuation_free_content.resize(content.size());
+  std::transform(content.begin(), content.end(), punctuation_free_content.begin(), [](const char ch) {
+    if (CharMatch(ch)) {
+      return ch;
+    }
+    return ' ';
+  });
+  while (!CharMatch(punctuation_free_content.back())) {
+    punctuation_free_content.pop_back();
+  }
+  // count words
+  auto ss = std::stringstream(punctuation_free_content);
+  auto word = std::string();
+  auto count_map = std::map<std::string, int>{};
+  while (!ss.eof()) {
+    ss >> word;
+    count_map[word]++;
+  }
+  return count_map;
+}
+
+std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map) {
+  std::stringstream ss;
+  for (const auto &[key, value] : count_map) {
+    ss << key << " " << value << "\n";
+  }
+  std::string content = ss.str();
+  return std::vector<uint8_t>{content.begin(), content.end()};
+}
+
+void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::string, int> &count_map) {
+  std::string str_content(content.begin(), content.end());
+  std::stringstream ss(str_content);
+  std::string word;
+  int count;
+  while (!ss.eof()) {
+    ss >> word >> count;
+    if (word.front() == '\0') {
+      continue;
+    }
+    count_map[word] += count;
+
+    //    LOG_FORMAT_INFO("{} {}", word, count_map[word]);
+  }
+}
+
+    bool IsAlpha(char ch) {
+        return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
     }
 
-    std::map<std::string, int> CountMap(const std::string &content) {
-        auto punctuation_free_content = std::string();
-        punctuation_free_content.resize(content.size());
-        std::transform(content.begin(), content.end(), punctuation_free_content.begin(), [](const char ch) {
-            if (CharMatch(ch)) {
-                return ch;
-            }
-            return ' ';
-        });
-        while (!CharMatch(punctuation_free_content.back())) {
-            punctuation_free_content.pop_back();
-        }
-        // count words
-        auto ss = std::stringstream(punctuation_free_content);
-        auto word = std::string();
-        auto count_map = std::map<std::string, int>{};
-        while (!ss.eof()) {
-            ss >> word;
-            count_map[word]++;
-        }
-        return count_map;
-    }
-
-    std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map) {
-        std::stringstream ss;
-        for (const auto &[key, value] : count_map) {
-            ss << key << " " << value << "\n";
-        }
-        std::string content = ss.str();
-        return std::vector<uint8_t>{content.begin(), content.end()};
-    }
-
-    void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::string, int> &count_map) {
-        std::string str_content(content.begin(), content.end());
-        std::stringstream ss(str_content);
-        std::string word;
-        int count;
-        while (!ss.eof()) {
-            ss >> word >> count;
-            if (word.front() == '\0') {
-                continue;
-            }
-            count_map[word] += count;
-
-            //    LOG_FORMAT_INFO("{} {}", word, count_map[word]);
-        }
-    }
-
+    // The map function processes the content and returns a vector of key-value pairs.
     std::vector<KeyVal> Map(const std::string &content) {
-        // Your code goes here
-        // Hints: split contents into an array of words.
+        std::vector<KeyVal> key_values;
 
-        // transform to punctuation-free words.
-        auto count_map = CountMap(content);
-        // prepare return value
-        std::vector<KeyVal> ret;
-        ret.reserve(count_map.size());
-        for (const auto &[key, count] : count_map) {
-            ret.emplace_back(key, std::to_string(count));
+        std::string::const_iterator start = content.begin(), end = content.end();
+        std::string word;
+        // Iterate over each character in the content
+        for (auto it = start; it != end; ++it) {
+            // If the character is alphabetic, add it to the current word
+            if (IsAlpha(*it)) {
+                word.push_back(*it);
+            }
+                // If the character is non-alphabetic and we have a word, emit it
+            else if (!word.empty()) {
+                key_values.emplace_back(word, "1"); // We emit "1" for each occurrence
+                word.clear(); // Clear the word for the next one
+            }
         }
-        return ret;
+
+        // Emit the last word if the content ends with an alphabetic character
+        if (!word.empty()) {
+            key_values.emplace_back(word, "1");
+        }
+
+        return key_values;
     }
 
-//
-// The reduce function is called once for each key generated by the
-// map tasks, with a list of all the values created for that key by
-// any map task.
-//
+    // The reduce function sums up all the counts for each word
     std::string Reduce(const std::string &key, const std::vector<std::string> &values) {
-        // Your code goes here
-        // Hints: return the number of occurrences of the word.
-        //  std::string ret = "0";
-        int count = 0;
-        for (const auto &value : values) {
-            count += std::stoi(value);
-        }
-        return std::to_string(count);
+        int sum = std::accumulate(values.begin(), values.end(), 0, [](int total, const std::string &number) {
+            return total + std::stoi(number);
+        });
+
+        return std::to_string(sum);
     }
 }  // namespace mapReduce
