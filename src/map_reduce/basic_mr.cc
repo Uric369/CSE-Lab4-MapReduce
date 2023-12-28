@@ -14,32 +14,30 @@ namespace mapReduce {
 // of key/value pairs.
 //
 
-bool IsAlpha(const char ch) {
-    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
-}
-
-std::map<std::string, int> CountMap(const std::string &content) {
-  auto punctuation_free_content = std::string();
-  punctuation_free_content.resize(content.size());
-  std::transform(content.begin(), content.end(), punctuation_free_content.begin(), [](const char ch) {
-    if (IsAlpha(ch)) {
-      return ch;
+    bool IsAlpha(const char ch) {
+        return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
     }
-    return ' ';
-  });
-  while (!IsAlpha(punctuation_free_content.back())) {
-    punctuation_free_content.pop_back();
-  }
-  // count words
-  auto ss = std::stringstream(punctuation_free_content);
-  auto word = std::string();
-  auto count_map = std::map<std::string, int>{};
-  while (!ss.eof()) {
-    ss >> word;
-    count_map[word]++;
-  }
-  return count_map;
-}
+
+    std::map<std::string, int> CountMap(const std::string &text) {
+        auto validChar = [](const char c) {
+            return std::isalpha(c) || std::isspace(c);
+        };
+
+        std::string modifiedText;
+        std::transform(text.begin(), text.end(), std::back_inserter(modifiedText), [&](const char c) {
+            return validChar(c) ? c : ' ';
+        });
+
+        std::istringstream stream(modifiedText);
+        std::map<std::string, int> wordFreq;
+        std::string currentWord;
+
+        while (stream >> currentWord) {
+            wordFreq[currentWord]++;
+        }
+
+        return wordFreq;
+    }
 
 // Serialize the count map to a vector of uint8_t.
     std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map) {
