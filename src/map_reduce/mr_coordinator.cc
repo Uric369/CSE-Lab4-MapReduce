@@ -12,21 +12,21 @@ namespace mapReduce {
             return popTask(map_task, MAP);
         }
         if (finished_map_task != files.size()) {
-            return {static_cast<int>(NONE), -1, ""};
+            return {NONE, -1, ""};
         }
         if (!reduce_task.empty()) {
             return popTask(reduce_task, REDUCE);
         }
-        return {static_cast<int>(NONE), -1, ""};
+        return {NONE, -1, ""};
     }
 
     int Coordinator::submitTask(int taskType, int index) {
         std::unique_lock<std::mutex> uniqueLock(this->mtx);
 
-        auto type = static_cast<mr_tasktype>(taskType);
-        if (type == MAP) {
+        auto task_type = static_cast<mr_tasktype>(taskType);
+        if (task_type == MAP) {
             finished_map_task++;
-        } else if (type == REDUCE) {
+        } else if (task_type == REDUCE) {
             isFinished = finished_map_task == files.size() && reduce_task.empty();
         }
         return 0;
