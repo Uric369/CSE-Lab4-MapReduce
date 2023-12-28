@@ -64,7 +64,11 @@ namespace mapReduce {
         std::vector<int> map_task;
         int finished_map_task{0};
         std::vector<int> reduce_task;
-        //  int n_reduce{};
+        // Helper method to pop a task from a task queue.
+        std::tuple<int, int, std::string> popTask(std::vector<int>& task_queue, mr_tasktype task_type);
+
+        // Helper method to push tasks into the task queue.
+        void initializeTaskQueue(std::vector<int>& task_queue, int size);
     };
 
     class Worker {
