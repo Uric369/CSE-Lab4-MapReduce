@@ -1,6 +1,3 @@
-#include <unistd.h>
-#include <cstdio>
-#include <cstdlib>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -24,19 +21,17 @@ namespace mapReduce {
     }
 
     int Coordinator::submitTask(int taskType, int index) {
-        // Lab4 : Your code goes here.
+        std::unique_lock<std::mutex> uniqueLock(this->mtx);
+
         auto type = static_cast<mr_tasktype>(taskType);
         if (type == MAP) {
             finished_map_task++;
-        }
-        if (type == REDUCE) {
-            isFinished = true;
+        } else if (type == REDUCE) {
+            isFinished = finished_map_task == files.size() && reduce_task.empty();
         }
         return 0;
     }
 
-// mr_coordinator calls Done() periodically to find out
-// if the entire job has finished.
     bool Coordinator::Done() {
         std::unique_lock<std::mutex> uniqueLock(this->mtx);
         return this->isFinished;

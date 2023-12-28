@@ -1,15 +1,5 @@
-#include <unistd.h>
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
-#include <mutex>
 #include <string>
 #include <unordered_map>
-#include <vector>
-
 #include "map_reduce/protocol.h"
 
 namespace mapReduce {
