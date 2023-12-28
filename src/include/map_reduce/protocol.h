@@ -76,6 +76,8 @@ namespace mapReduce {
         explicit Worker(MR_CoordinatorConfig config);
         void doWork();
         void stop();
+        void writeToFile(const std::string &filename, const std::vector<uint8_t> &content);
+        std::string readFromFile(const std::string &filename);
 
     private:
         void doMap(int index, const std::string &filename);
@@ -88,7 +90,6 @@ namespace mapReduce {
         std::unique_ptr<std::thread> work_thread;
         bool shouldStop = false;
     };
-    bool CharMatch(char ch);
     std::map<std::string, int> CountMap(const std::string &content);
     std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map);
     void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::string, int> &count_map);

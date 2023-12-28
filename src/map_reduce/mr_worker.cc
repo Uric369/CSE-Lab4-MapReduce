@@ -9,20 +9,15 @@ namespace mapReduce {
         outPutFile = config.resultFile;
         chfs_client = config.client;
         work_thread = std::make_unique<std::thread>(&Worker::doWork, this);
-        // Lab4: Your code goes here (Optisonal).
+        // Lab4: Your code goes here (Optional).
     }
 
     void Worker::doMap(int index, const std::string &filename) {
         // Lab4: Your code goes here.
-        auto file_inode_id = chfs_client->lookup(1, filename).unwrap();
-        auto [type, attr] = chfs_client->get_type_attr(file_inode_id).unwrap();
-        auto content = chfs_client->read_file(file_inode_id, 0, attr.size).unwrap();
-        auto str_content = std::string(content.begin(), content.end());
-        auto count_map = CountMap(str_content);
-
+        auto file_content = readFromFile(filename);
+        auto count_map = CountMap(file_content);
         auto intermediate_filename = "intermediate_" + std::to_string(index);
-        auto intermediate_file_inode_id = chfs_client->lookup(1, intermediate_filename).unwrap();
-        chfs_client->write_file(intermediate_file_inode_id, 0, SerializeCountMap(count_map));
+        writeToFile(intermediate_filename, SerializeCountMap(count_map));
     }
 
     void Worker::doReduce(int index, int nfiles) {
@@ -69,5 +64,17 @@ namespace mapReduce {
             }
             doSubmit(work_type, index);
         }
+    }
+
+    std::string Worker::readFromFile(const std::string &filename) {
+        auto file_inode_id = chfs_client->lookup(1, filename).unwrap();
+        auto [type, attr] = chfs_client->get_type_attr(file_inode_id).unwrap();
+        auto content = chfs_client->read_file(file_inode_id, 0, attr.size).unwrap();
+        return std::string(content.begin(), content.end());
+    }
+
+    void Worker::writeToFile(const std::string &filename, const std::vector<uint8_t> &content) {
+        auto file_inode_id = chfs_client->lookup(1, filename).unwrap();
+        chfs_client->write_file(file_inode_id, 0, content);
     }
 }  // namespace mapReduce
