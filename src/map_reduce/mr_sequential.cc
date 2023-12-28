@@ -14,31 +14,29 @@ namespace mapReduce {
     }
 
     void SequentialMapReduce::doWork() {
-        // Assuming Map and Reduce are defined elsewhere in the class.
-        std::map<std::string, std::vector<std::string>> map_result;
-        // Reserve space for map_result if possible; this is optional and can be skipped if not needed.
+        std::map<std::string, std::vector<std::string>> intermediateResults;
 
-        for (const auto &filename : files) {
-            auto file_inode_id = chfs_client->lookup(1, filename).unwrap();
-            auto [type, attr] = chfs_client->get_type_attr(file_inode_id).unwrap();
-            auto content = chfs_client->read_file(file_inode_id, 0, attr.size).unwrap();
-            auto str_content = std::string(content.begin(), content.end());
+        for (const auto &file : files) {
+            auto fileID = chfs_client->lookup(1, file).unwrap();
+            auto [type, attributes] = chfs_client->get_type_attr(fileID).unwrap();
+            auto fileData = chfs_client->read_file(fileID, 0, attributes.size).unwrap();
+            std::string fileContent(fileData.begin(), fileData.end());
 
-            for (auto &[key, value] : Map(str_content)) {
-                map_result[std::move(key)].emplace_back(std::move(value));
+            for (auto &[extractedKey, extractedValue] : Map(fileContent)) {
+                intermediateResults[std::move(extractedKey)].emplace_back(std::move(extractedValue));
             }
         }
 
-        std::ostringstream result_ss;
-        for (auto &[key, values] : map_result) {
-            result_ss << key << ' ' << Reduce(key, values) << '\n';
+        std::ostringstream combinedResults;
+        for (auto &[key, values] : intermediateResults) {
+            combinedResults << key << ' ' << Reduce(key, values) << '\n';
         }
 
-        auto result_content = result_ss.str();
-        auto result = std::vector<uint8_t>(result_content.begin(), result_content.end());
+        std::string resultsString = combinedResults.str();
+        std::vector<uint8_t> resultsData(resultsString.begin(), resultsString.end());
 
-        auto output_file_inode_id = chfs_client->lookup(1, outPutFile).unwrap();
-        chfs_client->write_file(output_file_inode_id, 0, result);
+        auto resultFileID = chfs_client->lookup(1, outPutFile).unwrap();
+        chfs_client->write_file(resultFileID, 0, resultsData);
     }
 
 }  // namespace mapReduce
