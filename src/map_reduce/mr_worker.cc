@@ -13,26 +13,25 @@ namespace mapReduce {
     }
 
     void Worker::doMap(int index, const std::string &filename) {
-        // Lab4: Your code goes here.
-        auto file_content = readFromFile(filename);
-        auto count_map = CountMap(file_content);
-        auto intermediate_filename = "intermediate_" + std::to_string(index);
-        writeToFile(intermediate_filename, SerializeCountMap(count_map));
+        auto content = readFromFile(filename);
+        auto map = CountMap(content);
+        auto intermediateFile = "intermediate_" + std::to_string(index);
+        writeToFile(intermediateFile, SerializeCountMap(map));
     }
 
-    void Worker::doReduce(int index, int nfiles) {
-        // Lab4: Your code goes here.
-        std::map<std::string, int> count_map;
-        for (int i = 0; i < nfiles; ++i) {
-            auto intermediate_filename = "intermediate_" + std::to_string(i);
-            auto intermediate_file_inode_id = chfs_client->lookup(1, intermediate_filename).unwrap();
-            auto [intermediate_type, intermediate_attr] = chfs_client->get_type_attr(intermediate_file_inode_id).unwrap();
-            auto intermediate_content = chfs_client->read_file(intermediate_file_inode_id, 0, intermediate_attr.size).unwrap();
-            DeserializeCountMap(intermediate_content, count_map);
+    void Worker::doReduce(int index, int totalFiles) {
+        std::map<std::string, int> aggregatedMap;
+        for (int i = 0; i < totalFiles; ++i) {
+            auto tempFilename = "intermediate_" + std::to_string(i);
+            auto tempFileID = chfs_client->lookup(1, tempFilename).unwrap();
+            auto [_, tempFileAttr] = chfs_client->get_type_attr(tempFileID).unwrap();
+            auto content = chfs_client->read_file(tempFileID, 0, tempFileAttr.size).unwrap();
+            DeserializeCountMap(content, aggregatedMap);
         }
-        auto file_inode_id = chfs_client->lookup(1, outPutFile).unwrap();
-        chfs_client->write_file(file_inode_id, 0, SerializeCountMap(count_map));
+        auto outputID = chfs_client->lookup(1, outPutFile).unwrap();
+        chfs_client->write_file(outputID, 0, SerializeCountMap(aggregatedMap));
     }
+
 
     void Worker::doSubmit(mr_tasktype taskType, int index) {
         // Lab4: Your code goes here.
@@ -46,23 +45,23 @@ namespace mapReduce {
 
     void Worker::doWork() {
         while (!shouldStop) {
-            // Lab4: Your code goes here.
             auto task_info = mr_client->call(ASK_TASK, 0);
             if (task_info.is_err()) {
                 continue;
             }
-            auto [type, index, file] = task_info.unwrap()->as<std::tuple<int, int, std::string>>();
-            auto work_type = static_cast<mr_tasktype>(type);
-            if (work_type == NONE) {
+            auto [taskType, taskIndex, taskData] = task_info.unwrap()->as<std::tuple<int, int, std::string>>();
+            auto workType = static_cast<mr_tasktype>(taskType);
+            if (workType == NONE) {
                 continue;
-            } else if (work_type == MAP) {
-                doMap(index, file);
-            } else if (work_type == REDUCE) {
-                doReduce(index, std::stoi(file));
+            } else if (workType == MAP) {
+                doMap(taskIndex, taskData);
+            } else if (workType == REDUCE) {
+                doReduce(taskIndex, std::stoi(taskData));
             }
-            doSubmit(work_type, index);
+            doSubmit(workType, taskIndex);
         }
     }
+
 
     std::string Worker::readFromFile(const std::string &filename) {
         auto file_inode_id = chfs_client->lookup(1, filename).unwrap();
