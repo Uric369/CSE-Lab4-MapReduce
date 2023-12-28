@@ -15,16 +15,21 @@ namespace mapReduce {
 // and look only at the contents argument. The return value is a slice
 // of key/value pairs.
 //
+
+bool IsAlpha(const char ch) {
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
 std::map<std::string, int> CountMap(const std::string &content) {
   auto punctuation_free_content = std::string();
   punctuation_free_content.resize(content.size());
   std::transform(content.begin(), content.end(), punctuation_free_content.begin(), [](const char ch) {
-    if (CharMatch(ch)) {
+    if (IsAlpha(ch)) {
       return ch;
     }
     return ' ';
   });
-  while (!CharMatch(punctuation_free_content.back())) {
+  while (!IsAlpha(punctuation_free_content.back())) {
     punctuation_free_content.pop_back();
   }
   // count words
@@ -62,10 +67,6 @@ void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::stri
     //    LOG_FORMAT_INFO("{} {}", word, count_map[word]);
   }
 }
-
-    bool IsAlpha(char ch) {
-        return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
-    }
 
     // The map function processes the content and returns a vector of key-value pairs.
     std::vector<KeyVal> Map(const std::string &content) {
