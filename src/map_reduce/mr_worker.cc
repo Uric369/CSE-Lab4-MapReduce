@@ -47,19 +47,17 @@ namespace mapReduce {
     void Worker::doWork() {
         while (!shouldStop) {
             // Lab4: Your code goes here.
-            auto call = mr_client->call(ASK_TASK, 0);
-            if (call.is_err()) {
+            auto task_info = mr_client->call(ASK_TASK, 0);
+            if (task_info.is_err()) {
                 continue;
             }
-            auto [type, index, file] = call.unwrap()->as<std::tuple<int, int, std::string>>();
+            auto [type, index, file] = task_info.unwrap()->as<std::tuple<int, int, std::string>>();
             auto work_type = static_cast<mr_tasktype>(type);
             if (work_type == NONE) {
                 continue;
-            }
-            if (work_type == MAP) {
+            } else if (work_type == MAP) {
                 doMap(index, file);
-            }
-            if (work_type == REDUCE) {
+            } else if (work_type == REDUCE) {
                 doReduce(index, std::stoi(file));
             }
             doSubmit(work_type, index);

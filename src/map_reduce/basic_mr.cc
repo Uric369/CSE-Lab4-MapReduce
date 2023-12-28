@@ -62,7 +62,6 @@ void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::stri
     }
     count_map[word] += count;
 
-    //    LOG_FORMAT_INFO("{} {}", word, count_map[word]);
   }
 }
 
