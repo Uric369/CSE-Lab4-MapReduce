@@ -7,8 +7,6 @@
 #include "librpc/client.h"
 #include "librpc/server.h"
 
-// Lab4: Free to modify this file
-
 namespace mapReduce {
     struct KeyVal {
         KeyVal(const std::string &key, const std::string &val) : key(key), val(val) {}
@@ -37,6 +35,10 @@ namespace mapReduce {
                 : port(port), ip_address(std::move(ip_address)), resultFile(resultFile), client(std::move(client)) {}
     };
 
+    std::map<std::string, int> CountMap(const std::string &content);
+    std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map);
+    void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::string, int> &count_map);
+
     class SequentialMapReduce {
     public:
         SequentialMapReduce(std::shared_ptr<chfs::ChfsClient> client, const std::vector<std::string> &files,
@@ -64,10 +66,7 @@ namespace mapReduce {
         std::vector<int> map_task;
         int finished_map_task{0};
         std::vector<int> reduce_task;
-        // Helper method to pop a task from a task queue.
         std::tuple<int, int, std::string> popTask(std::vector<int>& task_queue, mr_tasktype task_type);
-
-        // Helper method to push tasks into the task queue.
         void initializeTaskQueue(std::vector<int>& task_queue, int size);
     };
 
@@ -90,7 +89,4 @@ namespace mapReduce {
         std::unique_ptr<std::thread> work_thread;
         bool shouldStop = false;
     };
-    std::map<std::string, int> CountMap(const std::string &content);
-    std::vector<uint8_t> SerializeCountMap(const std::map<std::string, int> &count_map);
-    void DeserializeCountMap(const std::vector<uint8_t> &content, std::map<std::string, int> &count_map);
 }  // namespace mapReduce
